@@ -154,16 +154,41 @@ def get_lables(img):
 
   return cv2.normalize(labels_ws, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
+
+def correct_conturs(src_img, offset=5):
+    tmp_img = np.zeros(shape=(src_img.shape[0]+offset,src_img.shape[1]+offset),dtype=int)
+    tmp_img[:,:]=255
+    x_offset=y_offset=offset
+
+    tmp_img[y_offset:y_offset+src_img.shape[0], x_offset:x_offset+src_img.shape[1]] = src_img
+
+    edges = cv2.Canny( np.uint8(tmp_img),0, 255, 1)
+
+    contours, hierarchy = cv2.findContours(edges,cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE )
+    for idx, val in enumerate(contours):
+        for idx1, val1 in enumerate(val):
+            for idx2, val2 in enumerate(val1):
+                contours[idx][idx1][idx2][0]=contours[idx][idx1][idx2][0]-x_offset
+                if contours[idx][idx1][idx2][0]<0:
+                    contours[idx][idx1][idx2][0] = 0
+                contours[idx][idx1][idx2][1]=contours[idx][idx1][idx2][1]-y_offset
+                if contours[idx][idx1][idx2][1]<0:
+                    contours[idx][idx1][idx2][1] = 0
+    return contours
+
+
 def get_counturs_from_label(label_prop_coords, scr_img_shape):
   c = np.flip(label_prop_coords, axis=None)
-  tmp_image = np.zeros(shape=(scr_img_shape))
+  tmp_image = np.zeros(shape=(scr_img_shape[0],scr_img_shape[1]))
   tmp_image[:,:]=255
   for z in c:
     tmp_image[z[1],z[0]]=0
 
-  edges = cv2.Canny( np.uint8(tmp_image),0, 255, 1)
-  contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
-  return contours
+#   edges = cv2.Canny( np.uint8(tmp_image),0, 255, 1)
+#   contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
+  result = correct_conturs(tmp_image,10)
+  return result
+
 
 # img = cv2.imread('f:\Project\map.jpg',-1)
 # img = cv2.imread('f:\Project\map\mymap_2.jpg',-1)
@@ -174,6 +199,7 @@ props = regionprops(labels_ws)
 i=0
 for p in props:
     z = get_counturs_from_label(p.coords,img.shape)
+
     pth = PathFinder(z,img,10,5)
     qqq = pth.get_route(i==13)
 
