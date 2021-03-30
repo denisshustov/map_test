@@ -59,14 +59,14 @@ class PathFinder:
         result = sorted(result, key=lambda s: s[2])
         return result
 
-    def get_relevant_points(self, neibors, un_x_ptr,ok_arr):
+    def get_relevant_points(self, neibors,un_x, un_x_ptr,ok_arr):
         result = []
         for n in neibors:
             if n[0] in un_x[:un_x_ptr] and not (n[0],n[1]) in ok_arr:
                 result.append(n)
         return result
     
-    def get_route(self, visualize=False):
+    def get_route(self, visualize=False,visualize_grid=False,):
         int_points = []
         y_min = min(self.array_of_contours[:,1:])[0]
         y_max = max(self.array_of_contours[:,1:])[0]+self.GRID_SIZE
@@ -78,16 +78,16 @@ class PathFinder:
         height = self.src_image.shape[0]
         width  = self.src_image.shape[1]
         for x in range(x_min, x_max, self.GRID_SIZE):
-            if visualize:
+            if visualize_grid:
                 cv2.line(self.src_image, (x, 0), (x, height), (255, 0, 0), 1, 1)
             for y in range(y_min, y_max, self.GRID_SIZE):
-                if visualize:
+                if visualize_grid:
                     cv2.line(self.src_image, (0, y), (width, y), (255, 0, 0), 1, 1)
                 vvv = self.line_intersection(((x, 0), (x, height)),((0, y), (width, y)))
                 if vvv:
                     for c in self.contours:
                         is_in = cv2.pointPolygonTest(c, (vvv[0], vvv[1]), True)
-                        if is_in > self.border_in:
+                        if is_in >= self.border_in:
                             int_points.append((vvv[0], vvv[1]))
                             if visualize:
                                 cv2.circle(self.src_image, (vvv[0], vvv[1]),1, (0,0,255), -1)
@@ -110,7 +110,7 @@ class PathFinder:
             cv2.circle(self.src_image, (x,y),1, (255,255,255), -1)
 
             neibors = self.getNeibors(xy,int_points,neibor_distance)
-            relevant_points = self.get_relevant_points(neibors,un_x_ptr,ok_arr)
+            relevant_points = self.get_relevant_points(neibors,un_x, un_x_ptr,ok_arr)
 
 
             if len(relevant_points)>0:
@@ -155,17 +155,43 @@ def get_lables(img):
   return cv2.normalize(labels_ws, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
 
+def get_conturs(u_tmp_img):
+
+    is_ok = True
+    contours = []
+
+    for i in range(0,5):
+        if i>0:
+            kernel=np.ones((i,i), np.uint8)
+            erosion=cv2.erode(u_tmp_img, kernel)
+            edges = cv2.Canny(erosion,0, 255)
+        else:
+            edges = cv2.Canny(u_tmp_img,0, 255)
+
+        contours, hierarchy = cv2.findContours(edges,cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)        
+        for idx, val in enumerate(contours):
+            if cv2.contourArea(val)<cv2.arcLength(val,True):
+                is_ok = False
+                break
+            else:
+                is_ok = True
+        if is_ok:
+            break
+    return contours
+
 def correct_conturs(src_img, offset=5):
-    tmp_img = np.zeros(shape=(src_img.shape[0]+offset,src_img.shape[1]+offset),dtype=int)
+    tmp_img = np.zeros(shape=(src_img.shape[0]+offset*50,src_img.shape[1]+offset*50),dtype=int)
     tmp_img[:,:]=255
     x_offset=y_offset=offset
 
     tmp_img[y_offset:y_offset+src_img.shape[0], x_offset:x_offset+src_img.shape[1]] = src_img
+    u_tmp_img = np.uint8(tmp_img)
 
-    edges = cv2.Canny( np.uint8(tmp_img),0, 255, 1)
-
-    contours, hierarchy = cv2.findContours(edges,cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE )
+    contours = get_conturs(u_tmp_img)
     for idx, val in enumerate(contours):
+        if cv2.contourArea(val)<cv2.arcLength(val,True):
+            xxx=123     #open contur
+        
         for idx1, val1 in enumerate(val):
             for idx2, val2 in enumerate(val1):
                 contours[idx][idx1][idx2][0]=contours[idx][idx1][idx2][0]-x_offset
@@ -174,6 +200,7 @@ def correct_conturs(src_img, offset=5):
                 contours[idx][idx1][idx2][1]=contours[idx][idx1][idx2][1]-y_offset
                 if contours[idx][idx1][idx2][1]<0:
                     contours[idx][idx1][idx2][1] = 0
+        
     return contours
 
 
@@ -186,6 +213,7 @@ def get_counturs_from_label(label_prop_coords, scr_img_shape):
 
 #   edges = cv2.Canny( np.uint8(tmp_image),0, 255, 1)
 #   contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
+
   result = correct_conturs(tmp_image,10)
   return result
 
@@ -197,6 +225,19 @@ labels_ws = get_lables(img)
 props = regionprops(labels_ws)
 
 i=0
+
+# z = get_counturs_from_label(props[1].coords,img.shape)
+# z = get_counturs_from_label(props[12].coords,img.shape)
+
+# pth = PathFinder(z,img,5,5)
+# qqq = pth.get_route(True, False)
+
+# for c in z:
+#     canvas = cv2.polylines(img, [c], True, (255, 0, 0) , 1)
+
+# cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
+# i+=1
+
 for p in props:
     z = get_counturs_from_label(p.coords,img.shape)
 
