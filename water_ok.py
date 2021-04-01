@@ -2,9 +2,8 @@ from skimage.morphology import watershed
 from skimage.feature import peak_local_max
 from skimage import morphology
 from scipy import ndimage
-import numpy as np
-from matplotlib import pyplot as plt
 from skimage.measure import regionprops
+import numpy as np
 import cv2
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -16,7 +15,7 @@ def get_lables(img):
   #image = cv2.GaussianBlur(image, (3,3), 1)
 
   #distance = ndimage.distance_transform_edt(image)
-  distance = cv2.distanceTransform(image, cv2.DIST_C ,5)
+  distance = cv2.distanceTransform(image, cv2.DIST_C, 5)
   local_maxi = peak_local_max(distance, indices=False, footprint=np.ones((60, 60)), labels=image)
   markers = morphology.label(local_maxi)
   labels_ws = watershed(-distance, markers, mask=image)
@@ -37,26 +36,25 @@ def get_counturs_from_label(label_prop_coords, scr_img_shape):
   contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
   return contours
   
-img = cv2.imread('/content/drive/My Drive/mymap_2.jpg',-1)#mymap_2
+img = cv2.imread('/home/pi/git/map_test/img/mymap_22.jpg',-1)#mymap_2
 labels_ws = get_lables(img)
 props = regionprops(labels_ws)
 print(props[1].coords)
-z = get_counturs_from_label(props[1].coords,image.shape)
 
-for c in z:
-  canvas = cv2.polylines(image, [c], True, (255, 0, 0) , 1)
+i=0
+for p in props:
+  z = get_counturs_from_label(p.coords,img.shape)
+
+  for c in z:
+    canvas = cv2.polylines(img, [c], True, (255, 0, 0) , 1)
+
+  cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
+  i+=1
 #-----------CONVERT TO CONTURS-----------
 
-# print(labels_ws)
-plt.figure(figsize = (30,10))
-plt.imshow(image) #, cmap=plt.cm.nipy_spectral)
+cv2.imshow("drawCntsImg23.jpg",img)
+cv2.waitKey(0)
 
-# plt.figure(figsize = (30,10))
-# plt.imshow(image, cmap=plt.cm.nipy_spectral)
-
-
-# plt.figure(figsize = (30,10))
-# plt.imshow(markers, cmap=plt.cm.nipy_spectral)
 
 # plt.figure(figsize = (30,10))
 # plt.imshow(labels_ws, cmap=plt.cm.nipy_spectral)

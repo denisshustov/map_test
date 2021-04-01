@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "/home/pi/miniconda3/envs/py2/bin/python",
+    "terminal.integrated.inheritEnv": true
+}
