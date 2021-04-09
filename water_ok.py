@@ -32,23 +32,30 @@ def get_counturs_from_label(label_prop_coords, scr_img_shape):
   for z in c:
     tmp_image[z[1],z[0]]=0
 
-  edges = cv2.Canny( np.uint8(tmp_image),0, 255, 1)
-  contours, hierarchy = cv2.findContours(edges,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE )
+  gray = cv2.cvtColor(np.uint8(tmp_image), cv2.COLOR_RGB2GRAY)
+  contours, hierarchy = cv2.findContours(gray,cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE )
   return contours
   
 img = cv2.imread('/home/pi/git/map_test/img/mymap_22.jpg',-1)#mymap_2
 labels_ws = get_lables(img)
 props = regionprops(labels_ws)
-print(props[1].coords)
+# props[1].filled_image.astype(np.uint8)
+# ret, m2 = cv2.threshold(props[10].filled_image.astype(np.uint8), 0, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
+# contours, hierarchy = cv2.findContours(m2, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE) 
+# for c in contours:
+#     cv2.drawContours(img, c, -1, (0, 255, 0), 1)
 
 i=0
 for p in props:
-  z = get_counturs_from_label(p.coords,img.shape)
+  counturs = get_counturs_from_label(p.coords,img.shape)
 
-  for c in z:
+  for c in counturs:
+    if cv2.contourArea(c)<cv2.arcLength(c,True):
+      qqqz=123
+      continue
     canvas = cv2.polylines(img, [c], True, (255, 0, 0) , 1)
 
-  cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
+    cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
   i+=1
 #-----------CONVERT TO CONTURS-----------
 
