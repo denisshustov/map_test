@@ -55,7 +55,7 @@ for p in props:
       continue
     canvas = cv2.polylines(img, [c], True, (255, 0, 0) , 1)
 
-    cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
+    # cv2.putText(img,str(i), (c[0][0][0],c[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, 1,(0,255,255),2)
   i+=1
 #-----------CONVERT TO CONTURS-----------
 
